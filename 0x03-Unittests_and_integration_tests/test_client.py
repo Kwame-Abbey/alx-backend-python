@@ -2,7 +2,7 @@
 """Test module for GithubOrgClient"""
 import unittest
 from unittest.mock import patch, PropertyMock
-# from parameterized import parameterized
+from parameterized import parameterized
 from client import GithubOrgClient
 
 
@@ -51,3 +51,12 @@ class TestGithubOrgClient(unittest.TestCase):
             result = client._public_repos_url
 
             self.assertEqual(result, expected_repos_url)
+
+    @parameterized.expand([
+        ({"license": {"key": "my_license"}}, "my_license", True),
+        ({"license": {"key": "other_license"}}, "my_license", False),
+    ])
+    def test_has_license(self, repo, license_key, expected_result):
+        """Test has_license method"""
+        result = GithubOrgClient.has_license(repo, license_key)
+        self.assertEqual(result, expected_result)

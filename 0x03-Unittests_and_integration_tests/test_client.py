@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Test module for GithubOrgClient"""
+
 import unittest
 from unittest.mock import patch, PropertyMock, Mock
 from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
 from fixtures import TEST_PAYLOAD
+from requests import HTTPError
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -12,7 +14,7 @@ class TestGithubOrgClient(unittest.TestCase):
 
     @patch('client.get_json')
     @patch('client.GithubOrgClient._public_repos_url',
-           new_callable=unittest.mock.PropertyMock)
+           new_callable=PropertyMock)
     def test_public_repos(self, mock_repos_url, mock_get_json):
         """Test public_repos method"""
 
@@ -71,8 +73,8 @@ class TestGithubOrgClient(unittest.TestCase):
         "apache2_repos": TEST_PAYLOAD[0][3]
     }
 ])
-class testIntegrationGithubOrgClient(unittest.TestCase):
-    """ testIntegrationGithubOrgClient class"""
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """TestIntegrationGithubOrgClient class"""
 
     @classmethod
     def setUpClass(cls):
@@ -88,7 +90,8 @@ class testIntegrationGithubOrgClient(unittest.TestCase):
                 mock = Mock()
                 mock.json.return_value = test_payload[url]
                 return mock
-            return HTTPError
+            else:
+                raise HTTPError("404 - Not Found")
 
         cls.get_patcher = patch("requests.get", side_effect=side_effect)
         cls.get_patcher.start()
@@ -97,8 +100,15 @@ class testIntegrationGithubOrgClient(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class"""
         cls.get_patcher.stop()
+        del cls.get_patcher
 
     def test_public_repos(self):
         """ Test public repo"""
         org = GithubOrgClient("google")
         self.assertEqual(org.public_repos(), self.expected_repos)
+
+    def test_public_repos_with_license(self):
+        """ Test public repos with a specific license"""
+        org = GithubOrgClient("google")
+        self.assertEqual(org.public_repos(license="apache-2.0"),
+                         self.apache2_repos)
